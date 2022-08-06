@@ -12,7 +12,7 @@ spring:
       database: transactions
 
 intuit:
-  maxBatchSize: 10
+  max-batch-size: 10
   number-of-countries: 200
   cache-size: 10_000
   geo-url: https://api.3geonames.org/?randomland=yes

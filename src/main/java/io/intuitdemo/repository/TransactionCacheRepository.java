@@ -3,7 +3,7 @@ package io.intuitdemo.repository;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.beans.factory.annotation.Value;
+import io.intuitdemo.config.props.IntuitConfig;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -21,21 +21,21 @@ import static java.util.UUID.randomUUID;
 @Component
 public class TransactionCacheRepository {
 
-    @Value("${intuit.cache-size}")
-    private int cacheSize;
+    private final IntuitConfig intuitConfig;
 
     private final StatisticsRepository statisticsRepository;
 
     private Cache<String, String> transactionCache;
 
-    public TransactionCacheRepository(StatisticsRepository statisticsRepository) {
+    public TransactionCacheRepository(IntuitConfig intuitConfig, StatisticsRepository statisticsRepository) {
+        this.intuitConfig = intuitConfig;
         this.statisticsRepository = statisticsRepository;
     }
 
     @PostConstruct
     public void initialize() {
         transactionCache = Caffeine.newBuilder()
-                .maximumSize(cacheSize)
+                .maximumSize(intuitConfig.getCacheSize())
                 .expireAfterWrite(1, TimeUnit.HOURS)
                 .removalListener((key, value, cause) -> statisticsRepository.updateStatisticsForCountry(requireNonNull(value).toString()))
                 .scheduler(systemScheduler())

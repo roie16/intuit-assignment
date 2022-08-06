@@ -5,8 +5,10 @@ import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 @OpenAPIDefinition(info = @Info(title = "Intuit home assigment", version = "0.1", description = "Intuit home assigment", contact = @Contact(name = "Roie Beck")))
 public class IntuitDemoApplication {
 

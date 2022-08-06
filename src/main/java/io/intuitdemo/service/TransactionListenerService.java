@@ -2,14 +2,10 @@ package io.intuitdemo.service;
 
 import io.intuitdemo.data.dto.TransactionDTO;
 import io.intuitdemo.util.RandomTransactionBatchGeneratorUtil;
-import io.netty.util.internal.ObjectUtil;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 
-import java.util.Objects;
-
-import static java.util.Objects.isNull;
+import static org.springframework.util.StringUtils.hasText;
 
 @Service
 public class TransactionListenerService {
@@ -30,6 +26,6 @@ public class TransactionListenerService {
         return randomTransactionBatchGeneratorUtil.createRandomStream()
                 .doOnNext(transactionBatchHandlerService::handleNextBatch)
                 .flatMap(Flux::fromIterable)
-                .filter(transactionDTO -> !isNull(transactionDTO.getCountry()));
+                .filter(transactionDTO -> hasText(transactionDTO.getCountry()));
     }
 }

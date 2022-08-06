@@ -1,10 +1,10 @@
 package io.intuitdemo.util;
 
+import io.intuitdemo.config.props.IntuitConfig;
 import io.intuitdemo.data.Product;
 import io.intuitdemo.data.Severity;
 import io.intuitdemo.data.dto.TransactionDTO;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -13,12 +13,10 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Random;
 
 import static java.lang.Math.random;
-import static java.time.LocalDateTime.ofInstant;
 import static reactor.core.publisher.Flux.interval;
 
 /**
@@ -28,11 +26,12 @@ import static reactor.core.publisher.Flux.interval;
 public class RandomTransactionBatchGeneratorUtil {
 
     public static final String REGEX = "[^\\d?!.]";
-    @Value("${intuit.maxBatchSize}")
-    private int maxBatchSize;
+
+    private final IntuitConfig intuitConfig;
     private final WebClient geoWebClient;
 
-    public RandomTransactionBatchGeneratorUtil(@Qualifier("geoWebClient") WebClient geoWebClient) {
+    public RandomTransactionBatchGeneratorUtil(IntuitConfig intuitConfig, @Qualifier("geoWebClient") WebClient geoWebClient) {
+        this.intuitConfig = intuitConfig;
         this.geoWebClient = geoWebClient;
     }
 
@@ -42,15 +41,14 @@ public class RandomTransactionBatchGeneratorUtil {
     }
 
     private Mono<List<TransactionDTO>> handleNextTransactionBatch(Long ignored) {
-        int batchSize = numberOfTransactionsInBatch();
-        return Flux.range(0, batchSize)
+        return Flux.range(0, numberOfTransactionsInBatch())
                 .flatMap(integer -> createRandomTransaction())
                 .collectList();
     }
 
     private int numberOfTransactionsInBatch() {
         Random rand = new Random();
-        return rand.nextInt(maxBatchSize);
+        return rand.nextInt(intuitConfig.getMaxBatchSize());
     }
 
     private Mono<TransactionDTO> createRandomTransaction() {
@@ -80,6 +78,6 @@ public class RandomTransactionBatchGeneratorUtil {
 
     private double extractFromString(String response, String extractAfter) {
         int index = response.indexOf(extractAfter) + extractAfter.length();
-        return Double.parseDouble(response.substring(index, index + 6).replaceAll(REGEX,""));
+        return Double.parseDouble(response.substring(index, index + 6).replaceAll(REGEX, ""));
     }
 }

@@ -3,10 +3,10 @@ package io.intuitdemo.repository;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.intuitdemo.config.props.IntuitConfig;
 import io.intuitdemo.data.TransactionStatics;
 import io.intuitdemo.data.dto.TransactionStatsDTO;
 import io.intuitdemo.service.StatisticsCalculatorService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -25,23 +25,23 @@ import static reactor.core.scheduler.Schedulers.boundedElastic;
 @Component
 public class StatisticsRepository {
 
-    @Value("${intuit.number-of-countries}")
-    private int numberOfCountries;
 
     private final TransactionRepository transactionRepository;
     private final StatisticsCalculatorService statisticsCalculatorService;
+    private final IntuitConfig intuitConfig;
 
     private Cache<String, TransactionStatics> staticsDTOCache;
 
-    public StatisticsRepository(TransactionRepository transactionRepository, StatisticsCalculatorService statisticsCalculatorService) {
+    public StatisticsRepository(TransactionRepository transactionRepository, StatisticsCalculatorService statisticsCalculatorService, IntuitConfig intuitConfig) {
         this.transactionRepository = transactionRepository;
         this.statisticsCalculatorService = statisticsCalculatorService;
+        this.intuitConfig = intuitConfig;
     }
 
     @PostConstruct
     public void initialize() {
         staticsDTOCache = Caffeine.newBuilder()
-                .maximumSize(numberOfCountries)
+                .maximumSize(intuitConfig.getNumberOfCountries())
                 .build();
     }
 
