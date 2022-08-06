@@ -1,0 +1,24 @@
+spring:
+  rsocket:
+    server:
+      port: 8081
+      transport: websocket
+      mapping-path: /rsocket
+
+  data:
+    mongodb:
+      auto-index-creation: true
+      uri: mongodb+srv://user:bPCpVsvRAdS5e0tR@democluster.ocm37hz.mongodb.net/transactions?retryWrites=true&w=majority
+      database: transactions
+
+intuit:
+  maxBatchSize: 10
+  number-of-countries: 200
+  cache-size: 10_000
+  geo-url: https://api.3geonames.org/?randomland=yes
+
+logging:
+  level:
+    io:
+      github:
+        coordinates2country: ERROR
