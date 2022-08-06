@@ -18,7 +18,7 @@ export const Statistic = ({
                 <H5>More Info on: {transactionStatistics.country}</H5>
                 <H6>% {100 - transactionStatistics.passPercentage} blocked</H6>
                 <H6>% {transactionStatistics.passPercentage} passed</H6>
-                <H6>% {transactionStatistics.reviewPercentage} passed</H6>
+                <H6>% {transactionStatistics.reviewPercentage} review</H6>
                 <H6>{transactionStatistics.totalEventCount} events</H6>
             </div>
         </Popover>
