@@ -78,6 +78,8 @@ public class RandomTransactionBatchGeneratorUtil {
 
     private double extractFromString(String response, String extractAfter) {
         int index = response.indexOf(extractAfter) + extractAfter.length();
-        return Double.parseDouble(response.substring(index, index + 6).replaceAll(REGEX, ""));
+        String coordinate = response.substring(index, index + 6).replaceAll(REGEX, "");
+        coordinate = coordinate.isEmpty() ? "50" : coordinate; // sometimes it is empty due to api error
+        return Double.parseDouble(coordinate);
     }
 }
