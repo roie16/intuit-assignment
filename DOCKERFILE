@@ -1,5 +1,5 @@
 FROM openjdk:17-jdk-alpine
 MAINTAINER Roie Beck
-COPY target/blockfence-0.0.1-SNAPSHOT.jar blockfence.jar
-ENTRYPOINT ["java","-jar","/blockfence.jar"]
+COPY target/intuitDemo-0.0.1-SNAPSHOT.jar intuitDemo.jar
+ENTRYPOINT ["java","-jar","/intuitDemo.jar"]
 EXPOSE 8080 8081
