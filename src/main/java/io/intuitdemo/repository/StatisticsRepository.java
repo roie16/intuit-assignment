@@ -5,9 +5,11 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.intuitdemo.config.props.IntuitConfig;
 import io.intuitdemo.data.TransactionStatics;
+import io.intuitdemo.data.dto.TransactionDTO;
 import io.intuitdemo.data.dto.TransactionStatsDTO;
 import io.intuitdemo.service.StatisticsCalculatorService;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
@@ -16,6 +18,7 @@ import java.util.List;
 
 import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.HOURS;
+import static java.util.stream.Collectors.groupingBy;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.scheduler.Schedulers.boundedElastic;
 
@@ -24,7 +27,6 @@ import static reactor.core.scheduler.Schedulers.boundedElastic;
  */
 @Component
 public class StatisticsRepository {
-
 
     private final TransactionRepository transactionRepository;
     private final StatisticsCalculatorService statisticsCalculatorService;
@@ -43,6 +45,7 @@ public class StatisticsRepository {
         staticsDTOCache = Caffeine.newBuilder()
                 .maximumSize(intuitConfig.getNumberOfCountries())
                 .build();
+        updateStatisticsOnStart();
     }
 
     public Mono<TransactionStatsDTO> getStatistics() {
@@ -57,12 +60,22 @@ public class StatisticsRepository {
         countries.forEach(this::updateStatisticsForCountry);
     }
 
-
     public void updateStatisticsForCountry(String country) {
         transactionRepository.findByCountryAndTransactionEpochSecondsAfter(country, now().minus(1, HOURS).getEpochSecond())
                 .collectList()
                 .map(transactionDTOList -> statisticsCalculatorService.calculateNewStatisticsForCountry(country, transactionDTOList))
                 .doOnNext(transactionStatics -> staticsDTOCache.put(country, transactionStatics))
+                .subscribeOn(boundedElastic())
+                .subscribe();
+    }
+
+    public void updateStatisticsOnStart() {
+        transactionRepository.findByTransactionEpochSecondsAfter(now().minus(1, HOURS).getEpochSecond())
+                .collectList()
+                .map(transactionDTOList -> transactionDTOList.stream().collect(groupingBy(TransactionDTO::getCountry)))
+                .flatMapMany(map -> Flux.fromIterable(map.entrySet()))
+                .map(entry -> statisticsCalculatorService.calculateNewStatisticsForCountry(entry.getKey(), entry.getValue()))
+                .doOnNext(transactionStatics -> staticsDTOCache.put(transactionStatics.getCountry(), transactionStatics))
                 .subscribeOn(boundedElastic())
                 .subscribe();
     }

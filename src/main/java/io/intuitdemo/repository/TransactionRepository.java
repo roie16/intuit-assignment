@@ -9,4 +9,6 @@ import reactor.core.publisher.Flux;
 public interface TransactionRepository extends ReactiveMongoRepository<TransactionDTO, String> {
 
     Flux<TransactionDTO> findByCountryAndTransactionEpochSecondsAfter(String country, long from);
+
+    Flux<TransactionDTO> findByTransactionEpochSecondsAfter(long from);
 }
