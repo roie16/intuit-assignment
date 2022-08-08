@@ -63,8 +63,8 @@ public class StatisticsRepository {
         return just(new TransactionStatsDTO(new ArrayList<>(staticsDTOCache.asMap().values())));
     }
 
-    public TransactionStatics getStatisticsForCountry(String country) {
-        return staticsDTOCache.get(country, s -> TransactionStatics.builder().build());
+    public Mono<TransactionStatics> getStatisticsForCountry(String country) {
+        return just(staticsDTOCache.get(country, s -> TransactionStatics.builder().build()));
     }
 
     public void updateStatisticsForCountries(List<String> countries) {
