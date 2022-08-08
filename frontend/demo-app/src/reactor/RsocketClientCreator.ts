@@ -1,16 +1,17 @@
-import { RSocketClient, JsonSerializer, IdentitySerializer } from 'rsocket-core';
-import RSocketWebsocketClient from "rsocket-websocket-client";
+import {WellKnownMimeType} from "rsocket-composite-metadata";
+import {RSocketConnector} from 'rsocket-core';
+import {WebsocketClientTransport} from 'rsocket-websocket-client';
 
 
-export async function createRsocketClient() {
-    const setup = {
-        keepAlive: 100000000,
-        lifetime: 10000000,
-        dataMimeType: 'application/json',
-        metadataMimeType: 'message/x.rsocket.routing.v0',
-    };
-    console.log("connecting with RSocket...");
-    const transport = new RSocketWebsocketClient({url: 'ws://localhost:8081/rsocket'});
-    const client = new RSocketClient({ setup, transport, serializers: {data: JsonSerializer, metadata: IdentitySerializer}});
-    return client.connect();
+export const createRsocketClient = async () => {
+    const connector = new RSocketConnector({
+        transport: new WebsocketClientTransport({
+            url: "ws://localhost:8080/rsocket",
+        }),
+        setup: {
+            dataMimeType: WellKnownMimeType.APPLICATION_JSON.toString(),
+            metadataMimeType: WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.toString()
+        }
+    });
+    return connector.connect();
 }

@@ -1,31 +1,72 @@
 import React, {useContext, useEffect, useState} from "react";
 import {createRsocketClient} from "../reactor/RsocketClientCreator";
 import {Transaction, TransactionWithTimeout} from "../data/Transaction";
-import {ReactiveSocket} from "rsocket-types";
 import {LiveMarker} from "./LiveMarker";
+import {MAX_REQUEST_N} from 'rsocket-core';
 import GoogleMapReact from "google-map-react";
 import {Switch} from "@blueprintjs/core";
 import {DashboardContext} from "../context/DashboardContext";
+import {useEffectOnce} from "../hooks/useEffectOnce";
+import {RSocket} from "rsocket-core/dist/RSocket";
+import {encodeCompositeMetadata, encodeRoute, WellKnownMimeType} from "rsocket-composite-metadata";
+import {Buffer} from 'buffer';
 
+window.Buffer = Buffer;
 
 export const LiveMarkers = () => {
 
     const [onlyHigh, setOnlyHigh] = useState(false);
     const [markers, setMarkers] = useState<TransactionWithTimeout[]>([])
     const dashboardContext = useContext(DashboardContext);
+    const [rsocket, setRSocket] = useState<RSocket | null>(null);
 
-    let rsocket: ReactiveSocket<any, any> | null = null;
+    useEffectOnce(() => {
+        createRsocketClient().then((_rsocket) => {
+            setRSocket(_rsocket);
+        });
+        return () => {
+            rsocket?.close();
+        };
+        // @ts-ignore
+    }, [createRsocketClient]);
 
 
     useEffect(() => {
-        getLiveSubscriptionFromServer().then(value => {
-            rsocket = value
-        });
-        return () => {
-            console.log("closing rsocket");
-            rsocket?.close();
+        if (!rsocket) {
+            return;
         }
-    }, []);
+        const map = new Map();
+        map.set(WellKnownMimeType.MESSAGE_RSOCKET_ROUTING, encodeRoute("live"));
+        const compositeMetaData = encodeCompositeMetadata(map);
+        const stream = rsocket.requestStream({metadata: compositeMetaData, data: null},
+            MAX_REQUEST_N,
+            {
+                onError(error) {
+                    console.error(error);
+                },
+                onComplete() {
+                    console.error('peer stream complete');
+                },
+                onNext(payload) {
+                    // @ts-ignore payload.data is not recognized as buffer
+                    const string = Buffer.from(payload.data).toString('utf8');
+                    const transaction: Transaction = JSON.parse(string);
+                    const TransactionWithTimeout: TransactionWithTimeout = {
+                        transaction: transaction,
+                        timeout: Date.now()
+                    }
+                    markers.push(TransactionWithTimeout)
+                    let newMarker = [...markers]
+                    newMarker = newMarker.filter(value => Date.now() - value.timeout < 30000) // remove after 30 seconds
+                    setMarkers(newMarker);
+                },
+                onExtension(extendedType, content, canBeIgnored) {
+                }
+            });
+        return () => {
+            stream?.cancel();
+        };
+    }, [rsocket]);
 
 
     function renderElements() {
@@ -53,7 +94,8 @@ export const LiveMarkers = () => {
                 top: 20,
                 left: 300,
                 zIndex: "100"
-            }} checked={onlyHigh} label="Show only high risk elements" onChange={() => setOnlyHigh(!onlyHigh)} large={true}/>
+            }} checked={onlyHigh} label="Show only high risk elements" onChange={() => setOnlyHigh(!onlyHigh)}
+                    large={true}/>
             <GoogleMapReact
                 bootstrapURLKeys={{key: "AIzaSyBTr9_03VY09ZIRxtXOOataYzi98mgQcNE"}}
                 defaultCenter={{lat: 10.99835602, lng: 77.01502627}}
@@ -63,28 +105,4 @@ export const LiveMarkers = () => {
         </>
     );
 
-
-    async function getLiveSubscriptionFromServer() {
-        const rsocket = await createRsocketClient();
-        rsocket.requestStream({metadata: String.fromCharCode('live'.length) + 'live'}).subscribe({
-            onNext: (msg) => {
-                const transaction: Transaction = JSON.parse(JSON.stringify(msg)).data;
-                const TransactionWithTimeout: TransactionWithTimeout = {transaction: transaction, timeout: Date.now()}
-                markers.push(TransactionWithTimeout)
-                let newMarker = [...markers]
-                newMarker = newMarker.filter(value => Date.now() - value.timeout < 30000) // remove after 30 seconds
-                setMarkers(newMarker);
-            },
-            onComplete: () => {
-                console.log(`requestStream completed`);
-            },
-            onError: (error) => {
-                console.error(error);
-            },
-            onSubscribe: subscription => {
-                subscription.request(100000000); // set it to some max value this is the subscription timeout
-            }
-        })
-        return rsocket;
-    }
 }
