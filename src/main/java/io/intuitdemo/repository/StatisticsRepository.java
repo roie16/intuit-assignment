@@ -48,6 +48,17 @@ public class StatisticsRepository {
         updateStatisticsOnStart();
     }
 
+    public void updateStatisticsOnStart() {
+        transactionRepository.findByTransactionEpochSecondsAfter(now().minus(1, HOURS).getEpochSecond())
+                .collectList()
+                .map(transactionDTOList -> transactionDTOList.stream().collect(groupingBy(TransactionDTO::getCountry)))
+                .flatMapMany(map -> Flux.fromIterable(map.entrySet()))
+                .map(entry -> statisticsCalculatorService.calculateNewStatisticsForCountry(entry.getKey(), entry.getValue()))
+                .doOnNext(transactionStatics -> staticsDTOCache.put(transactionStatics.getCountry(), transactionStatics))
+                .subscribeOn(boundedElastic())
+                .subscribe();
+    }
+
     public Mono<TransactionStatsDTO> getStatistics() {
         return just(new TransactionStatsDTO(new ArrayList<>(staticsDTOCache.asMap().values())));
     }
@@ -68,16 +79,4 @@ public class StatisticsRepository {
                 .subscribeOn(boundedElastic())
                 .subscribe();
     }
-
-    public void updateStatisticsOnStart() {
-        transactionRepository.findByTransactionEpochSecondsAfter(now().minus(1, HOURS).getEpochSecond())
-                .collectList()
-                .map(transactionDTOList -> transactionDTOList.stream().collect(groupingBy(TransactionDTO::getCountry)))
-                .flatMapMany(map -> Flux.fromIterable(map.entrySet()))
-                .map(entry -> statisticsCalculatorService.calculateNewStatisticsForCountry(entry.getKey(), entry.getValue()))
-                .doOnNext(transactionStatics -> staticsDTOCache.put(transactionStatics.getCountry(), transactionStatics))
-                .subscribeOn(boundedElastic())
-                .subscribe();
-    }
-
 }
