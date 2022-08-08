@@ -48,7 +48,7 @@ public class StatisticsRepository {
         updateStatisticsOnStart();
     }
 
-    public void updateStatisticsOnStart() {
+    private void updateStatisticsOnStart() {
         transactionRepository.findByTransactionEpochSecondsAfter(now().minus(1, HOURS).getEpochSecond())
                 .collectList()
                 .map(transactionDTOList -> transactionDTOList.stream().collect(groupingBy(TransactionDTO::getCountry)))
